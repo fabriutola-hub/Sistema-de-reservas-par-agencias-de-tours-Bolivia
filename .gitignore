@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# vscode
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# debug scripts
+scripts/test-email-hardcoded.js
+scripts/*.log
+
+# system
+.DS_Store
+Thumbs.db

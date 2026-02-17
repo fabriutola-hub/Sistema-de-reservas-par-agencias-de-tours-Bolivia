@@ -263,7 +263,7 @@ export default function ReportesPage() {
                                                     fill="#8884d8"
                                                     dataKey="total"
                                                     nameKey="metodo"
-                                                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                                                    label={({ percent }) => `${((percent || 0) * 100).toFixed(0)}%`}
                                                 >
                                                     {reportData.porMetodoPago.map((entry, index) => (
                                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -297,7 +297,7 @@ export default function ReportesPage() {
                                                     fill="#82ca9d"
                                                     dataKey="total"
                                                     nameKey="canal"
-                                                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                                                    label={({ percent }) => `${((percent || 0) * 100).toFixed(0)}%`}
                                                 >
                                                     {reportData.porCanal.map((entry, index) => (
                                                         <Cell key={`cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} />

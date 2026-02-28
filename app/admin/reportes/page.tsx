@@ -125,6 +125,56 @@ export default function ReportesPage() {
         doc.save(`reporte_${startDate}_${endDate}.pdf`)
     }
 
+    function exportCSV() {
+        if (!reportData) return
+
+        const lines: string[] = []
+
+        // Header info
+        lines.push(`Reporte de Ventas`)
+        lines.push(`Período,${startDate},${endDate}`)
+        lines.push(`Total Reservas,${reportData.totalReservas}`)
+        lines.push(`Ingresos Totales,${reportData.totalIngresos}`)
+        lines.push('')
+
+        // By Tour
+        lines.push('Desglose por Tour')
+        lines.push('Tour,Reservas,Ingresos (Bs),% del Total')
+        reportData.porTour.forEach(t => {
+            const pct = reportData.totalIngresos > 0
+                ? ((t.ingresos / reportData.totalIngresos) * 100).toFixed(1)
+                : '0'
+            lines.push(`"${t.nombre}",${t.reservas},${t.ingresos},${pct}%`)
+        })
+        lines.push('')
+
+        // By Payment Method
+        lines.push('Por Método de Pago')
+        lines.push('Método,Total (Bs)')
+        reportData.porMetodoPago.forEach(p => {
+            lines.push(`"${p.metodo}",${p.total}`)
+        })
+        lines.push('')
+
+        // By Channel
+        if (reportData.porCanal?.length) {
+            lines.push('Por Canal')
+            lines.push('Canal,Total')
+            reportData.porCanal.forEach(c => {
+                lines.push(`"${c.canal}",${c.total}`)
+            })
+        }
+
+        const csvContent = lines.join('\n')
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `reporte_${startDate}_${endDate}.csv`
+        link.click()
+        URL.revokeObjectURL(url)
+    }
+
     return (
         <div className="space-y-6">
             <div>
@@ -321,13 +371,22 @@ export default function ReportesPage() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                             <h3 className="font-semibold text-gray-800">Desglose por Tour</h3>
-                            <button
-                                onClick={exportPDF}
-                                className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700"
-                            >
-                                <Download className="h-4 w-4" />
-                                Exportar PDF
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={exportCSV}
+                                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    <Download className="h-4 w-4" />
+                                    Exportar CSV
+                                </button>
+                                <button
+                                    onClick={exportPDF}
+                                    className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700"
+                                >
+                                    <Download className="h-4 w-4" />
+                                    Exportar PDF
+                                </button>
+                            </div>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full">

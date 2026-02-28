@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 
-type NavItem = { name: string; path: string }
+type NavItem = { name: string; path: string; prefetch?: boolean }
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -26,8 +26,8 @@ export default function Navbar() {
     () => [
       { name: 'Inicio', path: '/' },
       { name: 'Catálogo', path: '/tours' },
-      { name: 'Galería', path: '/galeria' },
-      { name: 'Nosotros', path: '/nosotros' },
+      { name: 'Galería', path: '/galeria', prefetch: false },
+      { name: 'Nosotros', path: '/nosotros', prefetch: false },
     ],
     []
   )
@@ -208,9 +208,10 @@ export default function Navbar() {
             {items.map((item) => {
               const active = isActive(item.path)
               return (
-                <Link
+<Link
                   key={item.name}
                   href={item.path}
+                  prefetch={item.prefetch ?? true}
                   aria-current={active ? 'page' : undefined}
                   className={[
                     'relative rounded-full px-4 py-2',
@@ -348,9 +349,10 @@ export default function Navbar() {
                   {items.map((item) => {
                     const active = isActive(item.path)
                     return (
-                      <Link
+<Link
                         key={item.name}
                         href={item.path}
+                        prefetch={item.prefetch ?? true}
                         onClick={() => setIsMenuOpen(false)}
                         aria-current={active ? 'page' : undefined}
                         className={[

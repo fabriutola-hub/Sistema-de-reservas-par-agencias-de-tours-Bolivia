@@ -535,17 +535,19 @@ export async function getReservasPorDia(dias: number = 30) {
 
     const { data } = await supabase
         .from('reservas')
-        .select('created_at, precio_total')
+        .select('created_at, precio_total, estado')
         .gte('created_at', startDate.toISOString())
         .order('created_at', { ascending: true })
 
-    // Group by day
+    // Group by day — only count income from paid/confirmed/completed
     const byDay: Record<string, { reservas: number; ingresos: number }> = {}
     data?.forEach((r: any) => {
         const day = r.created_at.split('T')[0]
         if (!byDay[day]) byDay[day] = { reservas: 0, ingresos: 0 }
         byDay[day].reservas++
-        byDay[day].ingresos += r.precio_total || 0
+        if (['pagada', 'confirmada', 'completada'].includes(r.estado)) {
+            byDay[day].ingresos += r.precio_total || 0
+        }
     })
 
     return Object.entries(byDay).map(([fecha, vals]) => ({
@@ -570,27 +572,32 @@ export async function getReportData(startDate: string, endDate: string, tourId?:
     const { data, error } = await query
     if (error) throw new Error(error.message)
 
-    // Aggregate
-    const totalReservas = data?.length || 0
-    const totalIngresos = data?.reduce((sum, r) => sum + (r.precio_total || 0), 0) || 0
+    // Only count income from paid/confirmed/completed reservations
+    const estadosValidos = ['pagada', 'confirmada', 'completada']
+    const reservasConIngreso = data?.filter((r: any) => estadosValidos.includes(r.estado)) || []
 
-    // By tour
+    // Aggregate — only count valid reservations
+    const totalReservas = reservasConIngreso.length
+    const totalIngresos = reservasConIngreso.reduce((sum: number, r: any) => sum + (r.precio_total || 0), 0)
+
+    // By tour — only count valid states
     const byTour: Record<string, { nombre: string; reservas: number; ingresos: number }> = {}
     data?.forEach((r: any) => {
+        if (!estadosValidos.includes(r.estado)) return
         const tid = r.tour_id
         if (!byTour[tid]) byTour[tid] = { nombre: r.tours?.nombre || 'N/A', reservas: 0, ingresos: 0 }
         byTour[tid].reservas++
         byTour[tid].ingresos += r.precio_total || 0
     })
 
-    // By payment method
+    // By payment method — only valid states
     const byPago: Record<string, number> = {}
-    data?.forEach((r: any) => {
+    reservasConIngreso.forEach((r: any) => {
         const method = r.metodo_pago || 'otro'
         byPago[method] = (byPago[method] || 0) + (r.precio_total || 0)
     })
 
-    // By channel (canal_reserva)
+    // By channel (canal_reserva) — all reservations
     const byCanal: Record<string, number> = {}
     data?.forEach((r: any) => {
         const canal = r.canal_reserva || 'web'

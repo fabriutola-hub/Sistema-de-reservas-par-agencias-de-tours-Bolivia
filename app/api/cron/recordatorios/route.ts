@@ -50,6 +50,15 @@ interface ReservaWithRelations {
     }[]
 }
 
+interface CompletionReserva {
+    id: string
+    fecha_tour: string
+    hora_tour: string | null
+    estado: string
+    tours: { duracion_horas: number | null } | null
+    disponibilidad: { hora_salida: string }[] | { hora_salida: string } | null
+}
+
 async function wasReminderSent(reservaId: string, tipo: string, canal: string = 'email'): Promise<boolean> {
     const { data } = await supabase
         .from('recordatorios_enviados')
@@ -297,7 +306,6 @@ async function completarToursFinalizados() {
 
     // Find confirmed/paid reservations from yesterday
     // We select yesterday's tours to be sure they finished.
-    // Ideally we could check today's tours that already finished, but yesterday is safer for now.
     const { data: reservas, error } = await supabase
         .from('reservas')
         .select(`
@@ -322,20 +330,21 @@ async function completarToursFinalizados() {
 
     const now = new Date()
 
-    for (const reserva of (reservas || [])) {
+    for (const rawReserva of (reservas || [])) {
         results.processed++
+        const reserva = rawReserva as unknown as CompletionReserva
 
         try {
             // Determine start time
             // order of preference: reserva.hora_tour -> disponibilidad.hora_salida -> default 08:00
-            let horaInicioStr = reserva.hora_tour
+            let horaInicioStr: string | null = reserva.hora_tour
 
-            if (!horaInicioStr && reserva.disponibilidad && Array.isArray(reserva.disponibilidad) && reserva.disponibilidad.length > 0) {
-                // @ts-ignore - Supabase type inference might be tricky here with arrays, assuming object
-                horaInicioStr = reserva.disponibilidad[0].hora_salida
-            } else if (!horaInicioStr && reserva.disponibilidad && !Array.isArray(reserva.disponibilidad)) {
-                // @ts-ignore
-                horaInicioStr = reserva.disponibilidad.hora_salida
+            if (!horaInicioStr && reserva.disponibilidad) {
+                if (Array.isArray(reserva.disponibilidad) && reserva.disponibilidad.length > 0) {
+                    horaInicioStr = reserva.disponibilidad[0].hora_salida
+                } else if (!Array.isArray(reserva.disponibilidad)) {
+                    horaInicioStr = (reserva.disponibilidad as { hora_salida: string }).hora_salida
+                }
             }
 
             if (!horaInicioStr) horaInicioStr = '08:00:00'
@@ -344,7 +353,6 @@ async function completarToursFinalizados() {
             const fechaTour = new Date(`${reserva.fecha_tour}T${horaInicioStr}`)
 
             // Add duration
-            // @ts-ignore
             const duracionHoras = reserva.tours?.duracion_horas || 4 // default 4h if missing
             const fechaFin = new Date(fechaTour.getTime() + duracionHoras * 60 * 60 * 1000)
 

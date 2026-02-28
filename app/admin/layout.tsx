@@ -1,8 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { createBrowserClient } from '@supabase/ssr'
 import {
   LayoutDashboard,
   MapPin,
@@ -40,14 +41,23 @@ function isActive(pathname: string, href: string) {
 
 export default function AdminShell({
   children,
-  userEmail = 'admin@tourreservas.bo',
 }: {
   children: React.ReactNode
-  userEmail?: string
 }) {
   const pathname = usePathname() || '/admin'
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const [userEmail, setUserEmail] = useState('Cargando...')
+
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email || 'admin')
+    })
+  }, [])
 
   const initials = useMemo(() => (userEmail?.[0] || 'A').toUpperCase(), [userEmail])
 

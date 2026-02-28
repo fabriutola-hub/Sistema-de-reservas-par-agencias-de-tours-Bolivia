@@ -494,7 +494,7 @@ export default function PerfilPage() {
                                         <div className="flex gap-3">
                                             <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
                                                 <img
-                                                    src={selectedReservation.tour.imagen_url || '/placeholder.jpg'}
+                                                    src={selectedReservation.tour.imagen_url || '/Imagen/about-adventure.png'}
                                                     alt={selectedReservation.tour.nombre}
                                                     className="w-full h-full object-cover"
                                                 />

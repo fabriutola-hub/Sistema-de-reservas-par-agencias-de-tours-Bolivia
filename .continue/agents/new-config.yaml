@@ -1,0 +1,10 @@
+name: Mi config Qwen
+version: 0.0.1
+schema: v1
+
+models:
+  - name: Qwen 3.5 Plus
+    provider: openai
+    model: Qwen3.5-Plus
+    apiBase: https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+    apiKey: sk-bb872e8cabb44baa8707c6ff8b255dc0

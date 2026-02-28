@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 export default function NosotrosPage() {
     const stats = [
         { value: "10+", label: "Años de experiencia" },
@@ -64,10 +66,13 @@ export default function NosotrosPage() {
                 {/* HERO (más editorial + profundidad) */}
                 <header className="relative isolate overflow-hidden">
                     <div className="absolute inset-0">
-                        <img
+                        <Image
                             src="/Imagen/about-hero.png"
                             alt="Paisaje Bolivia"
-                            className="h-full w-full object-cover"
+                            fill
+                            priority
+                            sizes="100vw"
+                            className="object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/70" />
                     </div>
@@ -166,11 +171,14 @@ export default function NosotrosPage() {
                         </article>
 
                         {/* Imagen 1 */}
-                        <figure className="group relative overflow-hidden rounded-3xl border border-border bg-muted shadow-sm lg:col-span-5">
-                            <img
+                        <figure className="group relative overflow-hidden rounded-3xl border border-border bg-muted shadow-sm lg:col-span-5 aspect-[4/3]">
+                            <Image
                                 src="/Imagen/about-adventure.png"
                                 alt="Aventura en Bolivia"
-                                className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04] motion-reduce:transform-none"
+                                fill
+                                loading="lazy"
+                                sizes="(max-width: 1024px) 100vw, 40vw"
+                                className="object-cover transition duration-700 group-hover:scale-[1.04] motion-reduce:transform-none"
                             />
                             <figcaption className="absolute inset-x-0 bottom-0 p-6">
                                 <div className="rounded-2xl bg-black/30 p-4 text-white backdrop-blur-md ring-1 ring-white/15">

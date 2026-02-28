@@ -448,8 +448,8 @@ Genera informes para analizar tu negocio.
 
 Una vez generado el reporte:
 
-- **Exportar PDF**: Click en **"Descargar PDF"** para imprimir o archivar
-- **Exportar CSV**: Click en **"Descargar CSV"** para analizar en Excel
+- **Exportar PDF**: Click en **"Exportar PDF"** para imprimir o archivar
+- **Exportar CSV**: Click en **"Exportar CSV"** para analizar en Excel o Google Sheets
 
 **Ejemplo de uso:**
 ```
@@ -497,44 +497,19 @@ Envía mensajes automáticos a tus clientes para confirmar sus tours.
 
 ### ¿Cómo funcionan los recordatorios?
 
-El sistema puede enviar recordatorios por email automáticamente:
-- 7 días antes del tour
-- 3 días antes del tour
-- 1 día antes del tour
+El sistema envía recordatorios automáticamente (se procesan una vez al día a medianoche):
+- **24 horas antes** del tour (por email)
+- **2 horas antes** del tour (por email y SMS)
+- **Solicitud de feedback** después de completar un tour
 
 ### Configurar Textos de Recordatorios
 
 1. Ve a **"Configuración"** → **"Recordatorios"**
-2. Verás plantillas para cada tipo:
-   - Recordatorio 7 días
-   - Recordatorio 3 días
-   - Recordatorio 1 día
+2. Configura:
+   - Activar/desactivar recordatorios por email
+   - Activar/desactivar recordatorios por SMS
 
-3. Click en **"Editar"** en la plantilla que quieres modificar
-
-4. Personaliza el texto usando estas variables:
-   - `{cliente}`: Nombre del cliente
-   - `{tour}`: Nombre del tour
-   - `{fecha}`: Fecha del tour
-   - `{codigo}`: Código de reserva
-   - `{total}`: Monto total
-
-**Ejemplo de plantilla:**
-```
-Hola {cliente},
-
-Este es un recordatorio de tu tour "{tour}" 
-programado para el {fecha}.
-
-Detalles:
-- Código de reserva: {codigo}
-- Hora de salida: 8:00 AM
-- Punto de encuentro: Plaza San Francisco
-
-¡Te esperamos!
-```
-
-5. Click en **"Guardar Plantilla"**
+**Nota**: Los recordatorios se envían automáticamente a los clientes con reservas confirmadas o pagadas.
 
 ### Ver Historial de Recordatorios
 
@@ -637,22 +612,6 @@ Configura los códigos QR para pagos:
 - Pago verificado
 - Recordatorios de tours
 - Cancelación de reserva
-
-### Backup y Exportación de Datos
-
-Es importante hacer copias de seguridad periódicamente:
-
-1. Ve a **"Configuración"** → **"Exportar Datos"**
-2. Selecciona qué exportar:
-   - Todas las reservas
-   - Todos los clientes
-   - Todos los tours
-   - Todo (recomendado)
-
-3. Click en **"Exportar"**
-4. El archivo ZIP se descarga con todos los datos en formato CSV
-
-**Recomendación**: Haz un backup al menos una vez al mes.
 
 ---
 

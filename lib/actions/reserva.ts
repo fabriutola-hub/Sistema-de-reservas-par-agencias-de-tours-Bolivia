@@ -3,20 +3,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { enviarEmailConfirmacion } from '@/lib/email'
 
-interface ReservaData {
+interface ReservaConRelaciones {
     id: string
-    cliente_id: string
-    tour_id: string
     fecha_tour: string
     num_personas: number
     precio_total: number
+    tours: { nombre: string; destino: string } | null
+    clientes: { nombre_completo: string; email: string } | null
 }
 
 export async function enviarConfirmacionReserva(reservaId: string) {
     const supabase = await createClient()
 
     // Get reservation with related data
-    const { data: reserva, error: resError } = await supabase
+    const { data, error: resError } = await supabase
         .from('reservas')
         .select(`
       id, 
@@ -29,10 +29,12 @@ export async function enviarConfirmacionReserva(reservaId: string) {
         .eq('id', reservaId)
         .single()
 
-    if (resError || !reserva) {
+    if (resError || !data) {
         console.error('[Confirmación] Error fetching reserva:', resError)
         return { success: false, error: resError?.message }
     }
+
+    const reserva = data as unknown as ReservaConRelaciones
 
     // Check if we already sent confirmation
     const { data: existingReminder } = await supabase
@@ -51,8 +53,8 @@ export async function enviarConfirmacionReserva(reservaId: string) {
         // Send email
         await enviarEmailConfirmacion({
             id: reserva.id,
-            cliente: (reserva as any).clientes,
-            tour: (reserva as any).tours,
+            cliente: reserva.clientes!,
+            tour: reserva.tours!,
             fecha_tour: reserva.fecha_tour,
             num_personas: reserva.num_personas,
             precio_total: reserva.precio_total
@@ -63,10 +65,10 @@ export async function enviarConfirmacionReserva(reservaId: string) {
             reserva_id: reservaId,
             tipo: 'confirmacion',
             canal: 'email',
-            destinatario: (reserva as any).clientes.email
+            destinatario: reserva.clientes!.email
         })
 
-        console.log('[Confirmación] Sent to', (reserva as any).clientes.email)
+        console.log('[Confirmación] Sent to', reserva.clientes!.email)
         return { success: true }
     } catch (err) {
         console.error('[Confirmación] Error sending:', err)
@@ -76,7 +78,7 @@ export async function enviarConfirmacionReserva(reservaId: string) {
             reserva_id: reservaId,
             tipo: 'confirmacion',
             canal: 'email',
-            destinatario: (reserva as any).clientes.email,
+            destinatario: reserva.clientes?.email || 'unknown',
             estado: 'fallido',
             error_mensaje: err instanceof Error ? err.message : 'Unknown error'
         })

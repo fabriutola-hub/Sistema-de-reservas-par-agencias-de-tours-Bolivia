@@ -477,12 +477,16 @@ export async function getDashboardMetrics() {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString()
 
-    // Total reservations this month
+    // Cleanup expired reservations before calculating metrics
+    await supabase.rpc('cleanup_expired_reservations')
+
+    // Total reservations this month (excluding canceled)
     const { count: totalReservas } = await supabase
         .from('reservas')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', startOfMonth)
         .lte('created_at', endOfMonth)
+        .not('estado', 'eq', 'cancelada')
 
     // Monthly revenue
     const { data: revenueData } = await supabase
@@ -537,6 +541,7 @@ export async function getReservasPorDia(dias: number = 30) {
         .from('reservas')
         .select('created_at, precio_total, estado')
         .gte('created_at', startDate.toISOString())
+        .not('estado', 'eq', 'cancelada')
         .order('created_at', { ascending: true })
 
     // Group by day — only count income from paid/confirmed/completed

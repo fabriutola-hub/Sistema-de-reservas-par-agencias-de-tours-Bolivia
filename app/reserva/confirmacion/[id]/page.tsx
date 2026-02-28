@@ -1,15 +1,63 @@
 
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
-import { CheckCircle, Upload, AlertTriangle, Smartphone } from 'lucide-react'
+import { CheckCircle, Upload, AlertTriangle, Smartphone, Clock, XCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { getTourPublic } from '@/lib/actions/booking'
+
+const TIMEOUT_MINUTES = 10
+
+function CountdownTimer({ createdAt, onExpired }: { createdAt: string; onExpired: () => void }) {
+    const [timeLeft, setTimeLeft] = useState<number>(() => {
+        const created = new Date(createdAt).getTime()
+        const deadline = created + TIMEOUT_MINUTES * 60 * 1000
+        return Math.max(0, Math.floor((deadline - Date.now()) / 1000))
+    })
+
+    useEffect(() => {
+        if (timeLeft <= 0) {
+            onExpired()
+            return
+        }
+        const interval = setInterval(() => {
+            setTimeLeft(prev => {
+                const next = prev - 1
+                if (next <= 0) {
+                    clearInterval(interval)
+                    onExpired()
+                    return 0
+                }
+                return next
+            })
+        }, 1000)
+        return () => clearInterval(interval)
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const minutes = Math.floor(timeLeft / 60)
+    const seconds = timeLeft % 60
+    const isUrgent = timeLeft < 180 // < 3 minutes
+    const isExpired = timeLeft <= 0
+
+    if (isExpired) return null
+
+    return (
+        <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-semibold ${isUrgent
+                ? 'bg-red-50 text-red-700 border border-red-200 animate-pulse'
+                : 'bg-amber-50 text-amber-700 border border-amber-200'
+            }`}>
+            <Clock className="h-4 w-4 flex-shrink-0" />
+            <span>
+                Tiempo para subir comprobante: {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+            </span>
+        </div>
+    )
+}
 
 export default function ConfirmationPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
@@ -19,11 +67,19 @@ export default function ConfirmationPage({ params }: { params: Promise<{ id: str
     const [loading, setLoading] = useState(true)
     const [uploading, setUploading] = useState(false)
     const [uploadSuccess, setUploadSuccess] = useState(false)
+    const [expired, setExpired] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    const handleExpired = useCallback(() => {
+        setExpired(true)
+    }, [])
 
     useEffect(() => {
         async function fetchReservation() {
             const supabase = createClient()
+
+            // Cleanup expired reservations before fetching
+            await supabase.rpc('cleanup_expired_reservations')
 
             // Use RPC to bypass RLS for anonymous users (securely)
             const { data, error } = await supabase
@@ -34,6 +90,23 @@ export default function ConfirmationPage({ params }: { params: Promise<{ id: str
                 setError('No se pudo cargar la reserva.')
             } else if (data) {
                 setReservation(data)
+
+                // Check if already canceled
+                if (data.estado === 'cancelada') {
+                    setExpired(true)
+                }
+
+                // Check if comprobante already uploaded
+                if (data.comprobante_url) {
+                    setUploadSuccess(true)
+                }
+
+                // Check if time has already expired
+                const created = new Date(data.created_at).getTime()
+                const deadline = created + TIMEOUT_MINUTES * 60 * 1000
+                if (Date.now() > deadline && !data.comprobante_url) {
+                    setExpired(true)
+                }
 
                 // Try to get tour ID from various possible locations in the response
                 const tourId = data.tour_id || data.tours?.id || (typeof data.tours === 'object' && data.tours.id)
@@ -54,6 +127,10 @@ export default function ConfirmationPage({ params }: { params: Promise<{ id: str
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return
+        if (expired) {
+            setError('El tiempo para subir el comprobante ha expirado. Tu reserva fue cancelada.')
+            return
+        }
 
         setUploading(true)
         setError(null)
@@ -114,17 +191,28 @@ export default function ConfirmationPage({ params }: { params: Promise<{ id: str
                     className="bg-white rounded-2xl shadow-xl overflow-hidden"
                 >
                     {/* Header */}
-                    <div className="bg-green-600 p-8 text-center text-white">
+                    <div className={`${expired && !uploadSuccess ? 'bg-red-600' : 'bg-green-600'} p-8 text-center text-white`}>
                         <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200, damping: 10 }}
                             className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4"
                         >
-                            <CheckCircle className="h-10 w-10 text-green-600" />
+                            {expired && !uploadSuccess ? (
+                                <XCircle className="h-10 w-10 text-red-600" />
+                            ) : (
+                                <CheckCircle className="h-10 w-10 text-green-600" />
+                            )}
                         </motion.div>
-                        <h1 className="text-3xl font-bold mb-2">¡Solicitud Recibida!</h1>
-                        <p className="text-green-100">Tu reserva #{id.slice(0, 8)} ha sido registrada.</p>
+                        <h1 className="text-3xl font-bold mb-2">
+                            {expired && !uploadSuccess ? '¡Reserva Expirada!' : '¡Solicitud Recibida!'}
+                        </h1>
+                        <p className={expired && !uploadSuccess ? 'text-red-100' : 'text-green-100'}>
+                            {expired && !uploadSuccess
+                                ? 'Tu reserva fue cancelada por no subir el comprobante a tiempo.'
+                                : `Tu reserva #${id.slice(0, 8)} ha sido registrada.`
+                            }
+                        </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2">
@@ -161,20 +249,54 @@ export default function ConfirmationPage({ params }: { params: Promise<{ id: str
                                 </div>
                             </div>
 
-                            <div className="bg-blue-50 p-4 rounded-xl flex items-start gap-3 text-sm text-blue-700">
-                                <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                                <p>
-                                    Tu reserva está en estado <strong>Pendiente</strong>. Para confirmarla, por favor realiza el pago escaneando el QR y sube el comprobante.
-                                </p>
-                            </div>
+                            {expired && !uploadSuccess ? (
+                                <div className="bg-red-50 p-4 rounded-xl flex items-start gap-3 text-sm text-red-700">
+                                    <XCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                                    <p>
+                                        Tu reserva fue <strong>cancelada automáticamente</strong> porque no se subió el comprobante de pago en los 10 minutos permitidos. Puedes realizar una nueva reserva.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="bg-blue-50 p-4 rounded-xl flex items-start gap-3 text-sm text-blue-700">
+                                    <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                                    <p>
+                                        Tu reserva está en estado <strong>Pendiente</strong>. Para confirmarla, por favor realiza el pago escaneando el QR y sube el comprobante.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Payment Section */}
                         <div className="p-8 bg-gray-50">
                             <h2 className="text-xl font-bold text-gray-900 mb-6">Instrucciones de Pago</h2>
 
-                            {!uploadSuccess ? (
+                            {expired && !uploadSuccess ? (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="bg-red-50 p-6 rounded-xl border border-red-100 flex flex-col items-center text-center h-full justify-center"
+                                >
+                                    <XCircle className="h-12 w-12 text-red-600 mb-4" />
+                                    <h3 className="text-lg font-bold text-red-800 mb-2">Tiempo Expirado</h3>
+                                    <p className="text-sm text-red-600">
+                                        El plazo de 10 minutos para subir el comprobante de pago ha finalizado. Tu reserva fue cancelada automáticamente y los cupos fueron liberados.
+                                    </p>
+                                    <button onClick={() => router.push('/tours')} className="mt-6 px-6 py-2.5 bg-rose-600 text-white font-medium rounded-xl hover:bg-rose-700 transition-colors">
+                                        Hacer nueva reserva
+                                    </button>
+                                </motion.div>
+                            ) : !uploadSuccess ? (
                                 <>
+                                    {/* Countdown timer */}
+                                    {reservation.created_at && (
+                                        <div className="mb-4">
+                                            <CountdownTimer
+                                                createdAt={reservation.created_at}
+                                                onExpired={handleExpired}
+                                            />
+                                        </div>
+                                    )}
+
                                     <div className="space-y-6">
                                         {/* QR Payment Method */}
                                         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
@@ -212,12 +334,13 @@ export default function ConfirmationPage({ params }: { params: Promise<{ id: str
                                                     type="file"
                                                     accept="image/*,application/pdf"
                                                     onChange={handleFileUpload}
-                                                    disabled={uploading}
+                                                    disabled={uploading || expired}
                                                     className="hidden"
                                                 />
                                                 <div className={`
                                         border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-white transition-colors
                                         ${uploading ? 'opacity-50 cursor-wait' : 'hover:border-rose-400'}
+                                        ${expired ? 'opacity-50 cursor-not-allowed' : ''}
                                     `}>
                                                     {uploading ? (
                                                         <div className="flex items-center justify-center gap-2 text-gray-500">

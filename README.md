@@ -2,7 +2,7 @@
 
 ## Descripción
 
-Sistema web completo de reservas diseñado para agencias de tours en Bolivia. Permite a los clientes explorar y reservar tours online, realizar pagos mediante códigos QR (Yape, Altoke, Banco), y recibir recordatorios automáticos. Incluye un panel administrativo integral para gestionar tours, reservas, clientes y generar reportes.
+Sistema web completo de reservas diseñado para agencias de tours en Bolivia. Permite a los clientes explorar y reservar tours online, realizar pagos mediante códigos QR (Yape, Altoke, Banco), y r[...]
 
 ## Características Principales
 
@@ -150,7 +150,7 @@ tour-reservas-bolivia/
 │   └── utils/            # Funciones de utilidad
 ├── supabase/              # Migraciones y configuración de Supabase
 │   └── migrations/       # Scripts SQL de migración
-├── types/                 # Tipos TypeScript
+├── types/                 # Definiciones de tipos TypeScript compartidos
 ├── public/                # Archivos estáticos
 └── scripts/               # Scripts de utilidad
 ```
@@ -192,9 +192,7 @@ Para preguntas o problemas relacionados con el sistema, contacta al equipo de de
 
 ## Licencia
 
-**Uso comercial único para la agencia compradora.**
-
-Este sistema es de uso exclusivo para la agencia que lo adquiere. No está permitida su reventa, redistribución o uso por terceros sin autorización expresa.
+Este proyecto está licenciado bajo la Licencia MIT. Para más detalles, consulta el archivo `LICENSE` en la raíz del repositorio.
 
 ---
 
